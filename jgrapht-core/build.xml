@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="jgrapht-core" default="package" basedir=".">
+
+  <import file="maven-build.xml"/>
+
+
+  <!-- ============= Integration with Major ============== -->
+
+  <!--Variables to locate Major tools-->
+  <property name="mutOp" value=":ALL"/>
+  <property name="major" value="/Users/uzziah/spring2019/cmpt473/a3/major/bin/javac"/> <!--use your own location -->
+  <property name="mutator" value="-XMutator${mutOp}"/>
+
+  <!--Make output directory-->
+  <target name="init">
+    <mkdir dir="bin"/>
+  </target>
+
+  <!--Clean output directory-->
+  <target name="clean" description="Clean">
+    <delete dir="bin"/>
+    <delete>
+      <fileset dir="." includes="*.csv"/>
+      <fileset dir="." includes="*.log"/>
+    </delete>
+  </target>
+
+  <!--Compile with Major-->
+  <target name="compile" depends="init" description="Compile">
+    <javac includeantruntime="true"
+           srcdir="src/main/java"
+           destdir="bin"
+           debug="yes"
+           fork="yes"
+           executable="${major}">
+
+      <compilerarg value="${mutator}"/>
+    </javac>
+  </target>
+
+  <!--Compile the tests-->
+  <target name="compile.tests" depends="compile" description="Compile all tests">
+    <javac includeantruntime="true"
+           srcdir="src/test/java"
+           destdir="bin"
+           debug="yes">
+    </javac>
+  </target>
+
+  <!--Run the test with mutations in Major-->
+  <target name="mutation.test" description="Run mutation analysis for all unit test cases">
+    <echo message="Running mutation analysis ..."/>
+    <junit  printsummary="false"
+            showoutput="false"
+            mutationAnalysis="true"
+            resultFile="results.csv"
+            killDetailsFile="killed.csv">
+
+      <classpath path="bin"/>
+      <batchtest fork="false">
+        <fileset dir="src/test/java">
+          <include name="**/*Test*.java"/>
+          <exclude name="**/All*Test*.java"/>
+          <exclude name="**/EnhancedTestCase.java"/>
+          <exclude name="**/ShortestPathTestCase.java"/>
+          <exclude name="**/AbstractGraphIteratorTest.java"/>
+          <exclude name="**/ConnectivityInspectorTest.java"/>
+          <exclude name="**/ShortestPathTestCase.java"/>
+        </fileset>
+      </batchtest>
+    </junit>
+  </target>
+
+  <!--Run the original test (without Major)-->
+  <target name="test" depends="compile.tests" description="Run all unit test cases">
+    <echo message="Running unit tests ..."/>
+    <junit  printsummary="true"
+            showoutput="true"
+            haltonfailure="false">
+      <formatter type="plain" usefile="false"/>
+      <classpath path="bin"/>
+
+      <batchtest fork="no">
+        <fileset dir="src/test/java">
+          <include name="**/*Test*.java"/>
+          <!--
+          Exclude testsuites that are aggregates of other testsuites
+          because mutants only executed on single testcases by definition.
+          By convention this project names aggregate tests as All*Test*.java, eg AllUtilTests.java
+          -->
+          <exclude name="**/All*Test*.java"/>
+          <!-- We don't need this testsuite b/c it is not really a concreate testsuite. -->
+          <exclude name="**/EnhancedTestCase.java"/>
+          <!--
+          Exclude these particular testsuites that are having junit initialization errors.
+          We are not interested in editing the source code to fix them, so simply exclude them.
+          -->
+          <exclude name="**/ShortestPathTestCase.java"/>
+          <exclude name="**/AbstractGraphIteratorTest.java"/>
+          <exclude name="**/ConnectivityInspectorTest.java"/>
+          <exclude name="**/ShortestPathTestCase.java"/>
+        </fileset>
+      </batchtest>
+    </junit>
+  </target>
+
+</project>
